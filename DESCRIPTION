@@ -1,0 +1,44 @@
+Package: bdpaft
+Type: Package
+Title: Bayesian Dirichlet-Process Accelerated Failure-Time Model with Factor-Analytic Spike-and-Slab Loadings
+Version: 0.1.0
+Authors@R: c(
+    person(given = "FIRST",
+           family = "LAST",
+           role = c("aut", "cre"),
+           email = "your.email@example.com"),
+    person(given = "Thierry",
+           family = "Chekouo",
+           role = "aut",
+           email = "thierry.chekouo@example.com")
+  )
+Description: Implements a Bayesian semiparametric accelerated failure-time model
+    with a Dirichlet-process mixture over a latent factor structure. Posterior
+    inference is performed by Gibbs sampling using the Kalli-Griffin-Walker
+    slice sampler for the DP stick-breaking representation, with stochastic
+    search variable selection (point-mass spike-and-slab) on the factor loadings.
+    The model is designed for survival data with high-dimensional omics
+    covariates and is described in <preprint URL TBD>.
+License: MIT + file LICENSE
+URL: https://github.com/kim02688/bdpaft
+BugReports: https://github.com/kim02688/bdpaft/issues
+Encoding: UTF-8
+LazyData: false
+Depends:
+    R (>= 4.0.0)
+Imports:
+    Rcpp (>= 1.0.7),
+    stats,
+    utils
+LinkingTo:
+    Rcpp,
+    RcppArmadillo
+Suggests:
+    testthat (>= 3.0.0),
+    mclust,
+    knitr,
+    rmarkdown
+SystemRequirements: C++17
+Roxygen: list(markdown = TRUE)
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.0.0
