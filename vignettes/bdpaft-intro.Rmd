@@ -1,0 +1,113 @@
+---
+title: "Introduction to bdpaft"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to bdpaft}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>",
+  fig.width = 6, fig.height = 4
+)
+```
+
+# Overview
+
+`bdpaft` fits a Bayesian Dirichlet-process accelerated failure-time model with factor-analytic spike-and-slab loadings:
+
+- Patients are clustered through a Dirichlet-process mixture on a shared latent factor `U`.
+- High-dimensional features are selected via spike-and-slab on the loading matrix `A`.
+- Both **point-mass** (default) and **continuous** spike-slab variants are supported through a single argument `tau_spike2`.
+
+This vignette walks through a small synthetic example.
+
+# Synthetic data
+
+```{r}
+library(bdpaft)
+set.seed(1)
+
+n <- 100; p <- 200; d_true <- 3
+
+# Latent factors with two clusters
+z_true <- sample(1:2, n, replace = TRUE, prob = c(0.6, 0.4))
+U <- matrix(rnorm(n * d_true), n, d_true)
+U[z_true == 2, ] <- U[z_true == 2, ] + matrix(rep(c(2, -1, 1), each = sum(z_true == 2)), ncol = d_true)
+
+# Sparse loading: only 20 features active
+A <- matrix(0, p, d_true)
+signal_idx <- 1:20
+A[signal_idx, ] <- matrix(rnorm(20 * d_true, sd = 0.8), 20, d_true)
+X <- U %*% t(A) + matrix(rnorm(n * p, sd = 0.1), n, p)
+
+# Survival times
+W <- cbind(rbinom(n, 1, 0.5))   # one binary covariate
+beta_true <- -0.5
+log_t <- W * beta_true + ifelse(z_true == 1, 0, 0.8) + rnorm(n, sd = 0.3)
+time   <- exp(log_t)
+status <- rbinom(n, 1, 0.85)
+```
+
+# Fit (point-mass spike-slab)
+
+```{r, results = "hide"}
+fit_pm <- bdpaft(time, status, X, covariates = W,
+                 d = 3, K_init = 5, K_max = 20,
+                 iters = 1500, burn = 750, thin = 5,
+                 verbose = FALSE, seed = 1)
+```
+
+# Variable selection
+
+```{r}
+sel <- posterior_pip(fit_pm, threshold = 0.5)
+cat("Number of selected features:", length(sel), "\n")
+cat("True signals recovered:",
+    length(intersect(sel, signal_idx)), "/", length(signal_idx), "\n")
+```
+
+# Cluster recovery
+
+```{r}
+z_hat <- posterior_z(fit_pm)
+table(true = z_true, estimated = z_hat)
+```
+
+# Covariate effect
+
+```{r}
+posterior_beta(fit_pm, cov_names = "treatment")
+```
+
+# Diagnostic plots
+
+```{r, fig.width = 7, fig.height = 8}
+plot(fit_pm, type = "trace")
+```
+
+```{r}
+plot(fit_pm, type = "pip", top_pip = 25)
+```
+
+# Continuous spike-slab variant
+
+```{r, results = "hide"}
+fit_co <- bdpaft(time, status, X, covariates = W,
+                 d = 3, K_init = 5, K_max = 20,
+                 iters = 1500, burn = 750, thin = 5,
+                 tau_spike2 = 0.01,
+                 verbose = FALSE, seed = 1)
+```
+
+```{r}
+cat("PM mode:", fit_pm$ssvs_mode,
+    " - features selected:", sum(fit_pm$pip > 0.5), "\n")
+cat("CO mode:", fit_co$ssvs_mode,
+    " - features selected:", sum(fit_co$pip > 0.5), "\n")
+```
+
+On sparse synthetic data the two variants typically agree. On dense real-world data they can disagree substantially; see the package paper for a sensitivity analysis.
