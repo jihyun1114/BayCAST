@@ -12,8 +12,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // bdpaft_cpp
-Rcpp::List bdpaft_cpp(const arma::vec& Y, const arma::vec& logC, const arma::mat& X, const arma::mat& W, const arma::vec& b0_beta, const arma::mat& B0_beta, double mu0, double kappa_mu0, double a0, double b0, int d, int K_max, int K_init, int iters, int burn, int thin, double sigmaA2, double pi0, double alpha_fixed, double alpha_init, double a_alpha, double b_alpha, bool sample_ab, double alpha_a_prior, double beta_a_prior, double alpha_b_prior, double beta_b_prior, double mh_a_sd, bool init_A_pca, bool init_z_kmeans, bool ind_slice, double rho, double nu_w_prior, const IntegerVector& diag_feat_idx, int diag_max_keep);
-RcppExport SEXP _bdpaft_bdpaft_cpp(SEXP YSEXP, SEXP logCSEXP, SEXP XSEXP, SEXP WSEXP, SEXP b0_betaSEXP, SEXP B0_betaSEXP, SEXP mu0SEXP, SEXP kappa_mu0SEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP dSEXP, SEXP K_maxSEXP, SEXP K_initSEXP, SEXP itersSEXP, SEXP burnSEXP, SEXP thinSEXP, SEXP sigmaA2SEXP, SEXP pi0SEXP, SEXP alpha_fixedSEXP, SEXP alpha_initSEXP, SEXP a_alphaSEXP, SEXP b_alphaSEXP, SEXP sample_abSEXP, SEXP alpha_a_priorSEXP, SEXP beta_a_priorSEXP, SEXP alpha_b_priorSEXP, SEXP beta_b_priorSEXP, SEXP mh_a_sdSEXP, SEXP init_A_pcaSEXP, SEXP init_z_kmeansSEXP, SEXP ind_sliceSEXP, SEXP rhoSEXP, SEXP nu_w_priorSEXP, SEXP diag_feat_idxSEXP, SEXP diag_max_keepSEXP) {
+Rcpp::List bdpaft_cpp(const arma::vec& Y, const arma::vec& logC, const arma::mat& X, const arma::mat& W, const arma::vec& b0_beta, const arma::mat& B0_beta, double mu0, double kappa_mu0, double a0, double b0, int d, int K_max, int K_init, int iters, int burn, int thin, double sigmaA2, double tau_spike2, double pi0, double alpha_fixed, double alpha_init, double a_alpha, double b_alpha, bool sample_ab, double alpha_a_prior, double beta_a_prior, double alpha_b_prior, double beta_b_prior, double mh_a_sd, bool init_A_pca, bool init_z_kmeans, bool ind_slice, double rho, double nu_w_prior, const IntegerVector& diag_feat_idx, int diag_max_keep);
+RcppExport SEXP _bdpaft_bdpaft_cpp(SEXP YSEXP, SEXP logCSEXP, SEXP XSEXP, SEXP WSEXP, SEXP b0_betaSEXP, SEXP B0_betaSEXP, SEXP mu0SEXP, SEXP kappa_mu0SEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP dSEXP, SEXP K_maxSEXP, SEXP K_initSEXP, SEXP itersSEXP, SEXP burnSEXP, SEXP thinSEXP, SEXP sigmaA2SEXP, SEXP tau_spike2SEXP, SEXP pi0SEXP, SEXP alpha_fixedSEXP, SEXP alpha_initSEXP, SEXP a_alphaSEXP, SEXP b_alphaSEXP, SEXP sample_abSEXP, SEXP alpha_a_priorSEXP, SEXP beta_a_priorSEXP, SEXP alpha_b_priorSEXP, SEXP beta_b_priorSEXP, SEXP mh_a_sdSEXP, SEXP init_A_pcaSEXP, SEXP init_z_kmeansSEXP, SEXP ind_sliceSEXP, SEXP rhoSEXP, SEXP nu_w_priorSEXP, SEXP diag_feat_idxSEXP, SEXP diag_max_keepSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -34,6 +34,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type burn(burnSEXP);
     Rcpp::traits::input_parameter< int >::type thin(thinSEXP);
     Rcpp::traits::input_parameter< double >::type sigmaA2(sigmaA2SEXP);
+    Rcpp::traits::input_parameter< double >::type tau_spike2(tau_spike2SEXP);
     Rcpp::traits::input_parameter< double >::type pi0(pi0SEXP);
     Rcpp::traits::input_parameter< double >::type alpha_fixed(alpha_fixedSEXP);
     Rcpp::traits::input_parameter< double >::type alpha_init(alpha_initSEXP);
@@ -52,13 +53,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type nu_w_prior(nu_w_priorSEXP);
     Rcpp::traits::input_parameter< const IntegerVector& >::type diag_feat_idx(diag_feat_idxSEXP);
     Rcpp::traits::input_parameter< int >::type diag_max_keep(diag_max_keepSEXP);
-    rcpp_result_gen = Rcpp::wrap(bdpaft_cpp(Y, logC, X, W, b0_beta, B0_beta, mu0, kappa_mu0, a0, b0, d, K_max, K_init, iters, burn, thin, sigmaA2, pi0, alpha_fixed, alpha_init, a_alpha, b_alpha, sample_ab, alpha_a_prior, beta_a_prior, alpha_b_prior, beta_b_prior, mh_a_sd, init_A_pca, init_z_kmeans, ind_slice, rho, nu_w_prior, diag_feat_idx, diag_max_keep));
+    rcpp_result_gen = Rcpp::wrap(bdpaft_cpp(Y, logC, X, W, b0_beta, B0_beta, mu0, kappa_mu0, a0, b0, d, K_max, K_init, iters, burn, thin, sigmaA2, tau_spike2, pi0, alpha_fixed, alpha_init, a_alpha, b_alpha, sample_ab, alpha_a_prior, beta_a_prior, alpha_b_prior, beta_b_prior, mh_a_sd, init_A_pca, init_z_kmeans, ind_slice, rho, nu_w_prior, diag_feat_idx, diag_max_keep));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_bdpaft_bdpaft_cpp", (DL_FUNC) &_bdpaft_bdpaft_cpp, 35},
+    {"_bdpaft_bdpaft_cpp", (DL_FUNC) &_bdpaft_bdpaft_cpp, 36},
     {NULL, NULL, 0}
 };
 

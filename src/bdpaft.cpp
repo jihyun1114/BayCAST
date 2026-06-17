@@ -1,12 +1,29 @@
-// bdpaft.cpp — BDPAFT sampler (Bayesian DP-mixture AFT with factor-analytic loadings)
+// bdpaft_continuous_ssvs.cpp
+// BDPAFT sampler with CONTINUOUS spike-slab variable selection.
 //
-// Package version: the cpp_plugins(cpp17) / depends(RcppArmadillo) markers
-// have been removed; these are handled in DESCRIPTION (LinkingTo,
-// SystemRequirements) and src/Makevars (CXX_STD = CXX17).
+// Difference from point-mass version (bdpaft.cpp):
+//   point-mass:  A_{j.} | delta_j = 0  has mass at exactly 0
+//                A_{j.} | delta_j = 1  ~ N(0, sigmaA2 * I_d)   (slab)
 //
-// The export is renamed bdpaft -> bdpaft_cpp so the user-facing R wrapper
-// bdpaft() in R/bdpaft.R can take the name. End users should not call
-// bdpaft_cpp() directly.
+//   continuous:  A_{j.} | delta_j = 0  ~ N(0, tau_spike2 * I_d)  (narrow spike)
+//                A_{j.} | delta_j = 1  ~ N(0, sigmaA2     * I_d)  (slab)
+//
+// Activated by passing tau_spike2 > 0.
+// Setting tau_spike2 <= 0 reproduces the original point-mass behavior.
+//
+// Recommended values:
+//   tau_spike2 / sigmaA2  in  [1e-4, 1e-2]
+//   e.g. sigmaA2 = 1.0, tau_spike2 = 0.01 (spike SD = 0.1 vs slab SD = 1.0)
+//
+// MCMC: Gibbs sampling with Kalli-Griffin-Walker slice for DP truncation.
+// Model:
+//   log T_i = W_i'beta + mu_{z_i} + epsilon_i,  epsilon ~ N(0, sigma^2_{z_i})
+//   z_i ~ DP(alpha, G_0)         (cluster assignment, KGW slice)
+//   X_i = U_i A' + e_i           (factor model with continuous spike-slab on A)
+//   U_i | z_i ~ N(nu_{z_i}, Sigma_{z_i})
+//
+// [[Rcpp::plugins(cpp17)]]
+// [[Rcpp::depends(RcppArmadillo)]]
 
 #include <RcppArmadillo.h>
 #include <cmath>
@@ -200,6 +217,7 @@ Rcpp::List bdpaft_cpp(
   int                  burn,
   int                  thin,
   double               sigmaA2,
+  double               tau_spike2,   // NEW: <=0 -> point-mass spike, >0 -> continuous spike
   double               pi0,
   double               alpha_fixed,
   double               alpha_init,
@@ -240,6 +258,19 @@ Rcpp::List bdpaft_cpp(
 
   pi0     = clamp01(pi0, 1e-8, 1.0-1e-8);
   sigmaA2 = std::max(sigmaA2, 1e-12);
+
+  // NEW: continuous-SSVS toggle
+  //   tau_spike2 <= 0     -> point-mass spike (legacy behavior)
+  //   0 < tau_spike2 < .. -> narrow Normal spike (continuous SSVS)
+  const bool use_continuous_ssvs = (tau_spike2 > 0.0);
+  if(use_continuous_ssvs){
+    if(tau_spike2 >= sigmaA2){
+      Rcpp::warning("tau_spike2 should be < sigmaA2; clamping to sigmaA2/100");
+      tau_spike2 = sigmaA2 / 100.0;
+    }
+    tau_spike2 = std::max(tau_spike2, 1e-12);
+  }
+
   if(ind_slice) rho = clamp01(rho, 0.0, 1.0-1e-4);
 
   const bool sample_alpha = (alpha_fixed <= 0.0);
@@ -251,6 +282,7 @@ Rcpp::List bdpaft_cpp(
   const double logit_pi0 = std::log(pi0 / (1.0-pi0));
   const double t_eps = 0.5;
 
+  // ---- diagnostic indices ----
   std::vector<int> diag0;
   for(int i = 0; i < diag_feat_idx.size(); ++i){
     int jj = diag_feat_idx[i];
@@ -261,6 +293,7 @@ Rcpp::List bdpaft_cpp(
   const int J = (int)diag0.size();
   if(J < 1) stop("diag_feat_idx has no valid indices in 1..p.");
 
+  // ========================== Hyperparameters ==========================
   const double apsi = 2.0, bpsi = 2.0;
   const arma::vec nu0  = arma::zeros(d);
   const double kappa0  = 1.0;
@@ -279,6 +312,7 @@ Rcpp::List bdpaft_cpp(
     B0inv_b0 = B0_inv * b0_beta;
   }
 
+  // ========================== State ==========================
   arma::vec  t(n, fill::zeros);
   arma::ivec z(n, fill::zeros);
   arma::vec  s(n, fill::zeros);
@@ -304,6 +338,7 @@ Rcpp::List bdpaft_cpp(
       xi(k) = (1.0-rho) * std::pow(rho, (double)k);
   }
 
+  // ========================== Initialisation ==========================
   if(init_A_pca){
     pca_init_X(X, d, U, A, psi);
   } else {
@@ -400,6 +435,7 @@ Rcpp::List bdpaft_cpp(
 
   delta.ones();
 
+  // ========================== Output storage ==========================
   const int out_keep = (iters-burn)/thin;
   if(out_keep <= 0) stop("No kept draws: check (iters, burn, thin).");
 
@@ -434,13 +470,14 @@ Rcpp::List bdpaft_cpp(
 
   int keep_idx = 0, keep_diag_idx = 0;
 
+  // ========================== INIT print ==========================
   {
     arma::ivec nk0(K_init, fill::zeros);
     for(int i = 0; i < n; ++i){
       int k = z(i); if(k>=0 && k<K_init) nk0(k)++;
     }
     int Kp0 = 0; for(int k=0; k<K_init; ++k) if(nk0(k)>0) Kp0++;
-    Rcpp::Rcout << "[INIT] n=" << n << " p=" << p << " d=" << d
+    Rcpp::Rcout << "[INIT KGW v10 +ContSSVS] n=" << n << " p=" << p << " d=" << d
                 << " q=" << q
                 << " K_max=" << K_max << " K_init=" << K_init
                 << " ind_slice=" << (ind_slice?1:0)
@@ -451,6 +488,16 @@ Rcpp::List bdpaft_cpp(
                 << " alpha=" << alpha
                 << " sample_ab=" << (sample_ab?1:0)
                 << " a=" << a_alpha << " b=" << b_alpha << "\n";
+
+    // NEW: SSVS mode banner
+    Rcpp::Rcout << "[INIT] ssvs_mode=" << (use_continuous_ssvs ? "CONTINUOUS" : "POINT_MASS")
+                << "  sigmaA2=" << sigmaA2;
+    if(use_continuous_ssvs){
+      Rcpp::Rcout << "  tau_spike2=" << tau_spike2
+                  << "  (sigmaA/tau_spike=" << std::sqrt(sigmaA2/tau_spike2) << "x)";
+    }
+    Rcpp::Rcout << "  pi0=" << pi0 << "\n";
+
     if(q > 0){
       Rcpp::Rcout << "[INIT] beta initialized at prior mean b0_beta = [";
       for(int j = 0; j < q; ++j){
@@ -463,7 +510,7 @@ Rcpp::List bdpaft_cpp(
                 << " Psi0_scale=" << Psi0_scale
                 << (auto_psi0 ? " (AUTO)" : "")
                 << " Psi0 trace=" << arma::trace(Psi0)
-                << " (empirical Psi0 base=" << (init_A_pca?"YES":"NO") << ")\n";
+                << " (empirical Psi0 base=" << (init_A_pca?"YES (cov(U_pca))":"NO (identity)") << ")\n";
     Rcpp::Rcout << "[INIT] A: " << (init_A_pca?"PCA-initialized":"zero-initialized")
                 << ",  psi median=" << arma::median(psi) << "\n";
     Rcpp::Rcout << "[INIT] Kplus=" << Kp0 << " w[1.." << K_init << "]:";
@@ -473,8 +520,10 @@ Rcpp::List bdpaft_cpp(
 
   const int PRINT_EVERY = 200;
 
+  // ========================== Gibbs loop ==========================
   for(int it = 1; it <= iters; ++it){
 
+    // (1) Slice variables
     if(ind_slice){
       for(int i = 0; i < n; ++i)
         s(i) = R::runif(0.0, xi(z(i)));
@@ -483,6 +532,7 @@ Rcpp::List bdpaft_cpp(
         s(i) = R::runif(0.0, w_vec(z(i)));
     }
 
+    // (2) Extend K*
     double s_star = arma::min(s);
     {
       if(ind_slice){
@@ -516,6 +566,7 @@ Rcpp::List bdpaft_cpp(
       }
     }
 
+    // (3) Precompute Sigma_k^{-1}, log|Sigma_k|
     arma::cube Sigma_inv(d, d, K_star, fill::zeros);
     arma::vec  logdetS(K_star, fill::zeros);
     for(int k = 0; k < K_star; ++k){
@@ -526,6 +577,7 @@ Rcpp::List bdpaft_cpp(
     arma::vec Wbeta(n, fill::zeros);
     if(q > 0) Wbeta = W * beta_cur;
 
+    // (4) t_i
     for(int i = 0; i < n; ++i){
       int    k   = z(i);
       double m_i = Wbeta(i) + mu(k);
@@ -536,6 +588,7 @@ Rcpp::List bdpaft_cpp(
                : rtruncnorm_left_icdf (m_i, sd, bnd);
     }
 
+    // (5) z_i
     for(int i = 0; i < n; ++i){
       std::vector<int> active_i;
       active_i.reserve(K_star);
@@ -581,6 +634,7 @@ Rcpp::List bdpaft_cpp(
       }
     }
 
+    // (6) U_i
     for(int j = 0; j < p; ++j)
       if(!std::isfinite(psi(j)) || psi(j) <= 1e-12) psi(j) = 1e-6;
 
@@ -597,42 +651,94 @@ Rcpp::List bdpaft_cpp(
       U.row(i) = rmvnorm(Cov*rhs, Cov).t();
     }
 
+    // ===========================================================
+    // (7) A, delta, psi | U, X     [CHANGED for continuous SSVS]
+    // ===========================================================
     {
       arma::mat UtU = U.t() * U;
       arma::mat UtX = U.t() * X;
 
+      // ---- (7a) delta_j update ----
+      //
+      // Marginal log-likelihood of x_j under prior A_{j.} ~ N(0, sigma_c^2 * I):
+      //   log p(x_j | delta_j=c) = const - 0.5 log|G_c| + 0.5 (sigma_c^2 / psi_j^2) quad_c
+      // where
+      //   G_c    = I + (sigma_c^2 / psi_j) U'U
+      //   quad_c = (U'x_j)' G_c^{-1} (U'x_j)
+      //
+      // POINT-MASS  (tau_spike2 <= 0):  sigma_0 = 0  ->  G_0 = I, log|G_0| = 0, quad_0 term vanishes
+      // CONTINUOUS  (tau_spike2 > 0) :  sigma_0 = sqrt(tau_spike2), full formula
+      //
       for(int j = 0; j < p; ++j){
         double psi_j = std::max(psi(j), 1e-12);
-        double c     = sigmaA2/psi_j;
-        arma::mat G    = arma::eye<arma::mat>(d,d) + c*UtU;
-        double logdetG = logdet_ridge(G);
-        arma::mat Ginv = inv_sympd_ridge(G);
-        arma::vec Utx  = UtX.col(j);
-        double quad    = arma::as_scalar(Utx.t()*Ginv*Utx);
-        double logit   = logit_pi0 + 0.5*(c/psi_j*quad - logdetG);
-        if(!std::isfinite(logit)) logit = (logit>0)?30.0:-30.0;
-        double pr1 = 1.0/(1.0+std::exp(-logit));
-        delta(j) = (R::runif(0.0,1.0)<pr1) ? 1.0 : 0.0;
+        arma::vec Utx = UtX.col(j);
+
+        // Slab (delta=1) marginal terms
+        double c1       = sigmaA2 / psi_j;
+        arma::mat G1    = arma::eye<arma::mat>(d, d) + c1 * UtU;
+        double logdetG1 = logdet_ridge(G1);
+        arma::mat G1inv = inv_sympd_ridge(G1);
+        double quad1    = arma::as_scalar(Utx.t() * G1inv * Utx);
+
+        double logit;
+        if(use_continuous_ssvs){
+          // Spike (delta=0) marginal terms — same form, narrow prior
+          double c0       = tau_spike2 / psi_j;
+          arma::mat G0    = arma::eye<arma::mat>(d, d) + c0 * UtU;
+          double logdetG0 = logdet_ridge(G0);
+          arma::mat G0inv = inv_sympd_ridge(G0);
+          double quad0    = arma::as_scalar(Utx.t() * G0inv * Utx);
+
+          // log[ P(delta=1 | x_j) / P(delta=0 | x_j) ] =
+          //   logit_pi0
+          //   + 0.5 (log|G_0| - log|G_1|)
+          //   + 0.5 / psi_j^2 * (sigmaA2 * quad_1 - tau_spike2 * quad_0)
+          logit = logit_pi0
+                + 0.5 * (logdetG0 - logdetG1)
+                + 0.5 / (psi_j * psi_j) * (sigmaA2 * quad1 - tau_spike2 * quad0);
+        } else {
+          // Point-mass limit
+          logit = logit_pi0 + 0.5 * (c1 / psi_j * quad1 - logdetG1);
+        }
+        if(!std::isfinite(logit)) logit = (logit > 0) ? 30.0 : -30.0;
+        double pr1 = 1.0 / (1.0 + std::exp(-logit));
+        delta(j) = (R::runif(0.0, 1.0) < pr1) ? 1.0 : 0.0;
       }
 
+      // ---- (7b) A_j update ----
+      //
+      // POINT-MASS:  delta_j = 0 -> A_{j.} = 0 ; delta_j = 1 -> draw from slab posterior
+      // CONTINUOUS:  always draw, with prior variance = sigmaA2 (delta=1) or tau_spike2 (delta=0)
+      //
       for(int j = 0; j < p; ++j){
-        if(delta(j)<0.5){ A.row(j).zeros(); continue; }
-        double    psi_j = std::max(psi(j), 1e-12);
-        arma::mat Prec  = (1.0/psi_j)*UtU + (1.0/sigmaA2)*arma::eye<arma::mat>(d,d);
-        arma::mat Cov   = inv_sympd_ridge(Prec);
-        arma::vec mean  = Cov*((1.0/psi_j)*UtX.col(j));
-        A.row(j)        = rmvnorm(mean, Cov).t();
+        double psi_j     = std::max(psi(j), 1e-12);
+        double prior_var;
+
+        if(use_continuous_ssvs){
+          prior_var = (delta(j) >= 0.5) ? sigmaA2 : tau_spike2;
+        } else {
+          if(delta(j) < 0.5){ A.row(j).zeros(); continue; }
+          prior_var = sigmaA2;
+        }
+
+        arma::mat Prec = (1.0 / psi_j) * UtU
+                       + (1.0 / prior_var) * arma::eye<arma::mat>(d, d);
+        arma::mat Cov  = inv_sympd_ridge(Prec);
+        arma::vec mean = Cov * ((1.0 / psi_j) * UtX.col(j));
+        A.row(j)       = rmvnorm(mean, Cov).t();
       }
 
+      // ---- (7c) psi_j update (unchanged) ----
       for(int j = 0; j < p; ++j){
-        arma::vec r  = X.col(j) - U*A.row(j).t();
+        arma::vec r  = X.col(j) - U * A.row(j).t();
         double    ss = arma::dot(r, r);
-        double    tau = R::rgamma(apsi+0.5*n, 1.0/(bpsi+0.5*ss));
-        psi(j) = 1.0/std::max(tau, 1e-12);
-        if(!std::isfinite(psi(j)) || psi(j)<=0) psi(j) = 1e-6;
+        double    tau = R::rgamma(apsi + 0.5 * n, 1.0 / (bpsi + 0.5 * ss));
+        psi(j) = 1.0 / std::max(tau, 1e-12);
+        if(!std::isfinite(psi(j)) || psi(j) <= 0) psi(j) = 1e-6;
       }
     }
 
+    // (8) mu_k, sig2_k
     for(int k = 0; k < K_star; ++k){
       arma::uvec idx = arma::find(z == k);
       int nk = (int)idx.n_elem;
@@ -651,6 +757,7 @@ Rcpp::List bdpaft_cpp(
       if(!std::isfinite(sig2(k)) || sig2(k)<=1e-12) sig2(k) = 1e-12;
     }
 
+    // (9) beta
     if(q > 0){
       arma::vec r_vec(n), wts(n);
       for(int i = 0; i < n; ++i){
@@ -666,6 +773,7 @@ Rcpp::List bdpaft_cpp(
       beta_cur = rmvnorm(b_n, B_n);
     }
 
+    // (10) V_k, w_k, alpha
     {
       arma::ivec nk(K_star, fill::zeros);
       for(int i = 0; i < n; ++i){
@@ -719,6 +827,7 @@ Rcpp::List bdpaft_cpp(
       }
     }
 
+    // (11) nu_k, Sigma_k
     for(int k = 0; k < K_star; ++k){
       arma::uvec idx = arma::find(z == k);
       int nk = (int)idx.n_elem;
@@ -741,6 +850,7 @@ Rcpp::List bdpaft_cpp(
                                 Sigma.slice(k)/(kappa0+nk)).t();
     }
 
+    // ---- progress print ----
     if(it==1 || it%PRINT_EVERY==0 || it==burn || it==iters){
       arma::ivec nk(K_star, fill::zeros);
       for(int i=0; i<n; ++i){ int k=z(i); if(k>=0&&k<K_star) nk(k)++; }
@@ -773,6 +883,7 @@ Rcpp::List bdpaft_cpp(
       Rcpp::Rcout << "\n";
     }
 
+    // ---- store kept draws ----
     if(it > burn && ((it-burn)%thin == 0)){
       if(keep_idx >= out_keep) break;
 
@@ -821,7 +932,7 @@ Rcpp::List bdpaft_cpp(
     }
   }
 
-  if(keep_idx <= 0) stop("No kept draws.");
+  if(keep_idx <= 0) stop("No kept draws — check (iters, burn, thin).");
 
   arma::Mat<int> z_out = z_draws.cols(0, keep_idx-1);
   z_out += 1;
@@ -884,6 +995,14 @@ Rcpp::List bdpaft_cpp(
   out["empirical_Psi0"]  = init_A_pca;
   out["nu_w"]            = nu_w;
   out["Psi0_scale"]      = Psi0_scale;
+
+  // NEW: continuous SSVS provenance
+  out["ssvs_mode"]       = std::string(use_continuous_ssvs ? "continuous" : "point_mass");
+  out["sigmaA2"]         = sigmaA2;
+  out["tau_spike2"]      = tau_spike2;
+  if(use_continuous_ssvs){
+    out["spike_slab_sd_ratio"] = std::sqrt(sigmaA2 / std::max(tau_spike2, 1e-12));
+  }
 
   if(q > 0){
     out["beta_mean"]  = beta_sum / (double)keep_idx;

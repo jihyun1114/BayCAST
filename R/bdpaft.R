@@ -11,55 +11,41 @@
 #'
 #' with cluster assignment \eqn{z_i} drawn from a Dirichlet process over
 #' \eqn{(\mu_k, \sigma^2_k, \nu_k, \Sigma_k)}. The high-dimensional features are
-#' modeled as \eqn{X_i = U_i A^\top + e_i} with a point-mass spike-and-slab
-#' prior on the rows of \eqn{A}; latent factors \eqn{U_i} share the cluster
-#' structure via \eqn{U_i \mid z_i \sim \mathcal{N}(\nu_{z_i}, \Sigma_{z_i})}.
+#' modeled as \eqn{X_i = U_i A^\top + e_i} with a spike-and-slab prior on the
+#' rows of \eqn{A}. Two variants are supported:
+#' \itemize{
+#'   \item \strong{Point-mass} (\code{tau_spike2 = 0}, default): inactive rows
+#'     are exactly zero.
+#'   \item \strong{Continuous} (\code{tau_spike2 > 0}): inactive rows are drawn
+#'     from a narrow Normal with variance \code{tau_spike2}.
+#' }
 #'
 #' @param time Numeric vector of length `n`: observed event or censoring time
 #'   (`> 0`).
 #' @param status Integer vector of length `n`: `1` if event observed, `0` if
 #'   right-censored.
-#' @param X Numeric matrix `n x p` of high-dimensional features (e.g.\
-#'   standardized gene expression).
-#' @param covariates Optional numeric matrix `n x q` of low-dimensional
-#'   covariates that always enter the model. Default `NULL` (none).
-#' @param d Latent factor dimension. Default `5`. Set by PCA scree in practice.
+#' @param X Numeric matrix `n x p` of high-dimensional features.
+#' @param covariates Optional numeric matrix `n x q` of covariates that always
+#'   enter the model. Default `NULL`.
+#' @param d Latent factor dimension. Default `5`.
 #' @param iters Total MCMC iterations. Default `4000`.
 #' @param burn Iterations discarded as burn-in. Default `iters %/% 2`.
 #' @param thin Thinning interval. Default `10`.
-#' @param K_max Truncation level for the stick-breaking representation of the
-#'   DP. Default `50`.
+#' @param K_max Truncation level for the DP. Default `50`.
 #' @param K_init Number of mixture components at initialization. Default `10`.
-#' @param pi0 Prior inclusion probability for each feature in SSVS. Default
-#'   `0.02`.
+#' @param pi0 Prior inclusion probability in SSVS. Default `0.02`.
 #' @param sigmaA2 Slab variance for the SSVS prior on rows of `A`. Default
 #'   `1.0`.
-#' @param slice Slice sampler choice for the DP truncation. `"kgw"` (default)
-#'   is the Kalli-Griffin-Walker dependent slice; `"walker"` is the original
-#'   Walker independent slice.
-#' @param init_A Initialization of the loading matrix and idiosyncratic
-#'   variances. `"pca"` (default) uses an SVD of `X`; `"zero"` starts at zero.
-#' @param init_z Initialization of cluster assignments. `"kmeans"` (default)
-#'   uses k-means on the initial latent scores (requires `init_A = "pca"`);
-#'   `"random"` uses a balanced random assignment.
-#' @param control A list of advanced control parameters from
-#'   [bdpaft_control()]. Defaults are sensible for typical use.
-#' @param seed Optional integer seed for reproducibility.
-#' @param verbose Logical; if `TRUE` (default), print MCMC progress.
+#' @param tau_spike2 Spike variance for continuous spike-slab. Default `0`
+#'   (point-mass spike). Set `> 0` (e.g. `0.01`) to use the continuous variant.
+#' @param slice Slice sampler choice. `"kgw"` (default) or `"walker"`.
+#' @param init_A Loading initialization. `"pca"` (default) or `"zero"`.
+#' @param init_z Cluster initialization. `"kmeans"` (default) or `"random"`.
+#' @param control Advanced control parameters from [bdpaft_control()].
+#' @param seed Optional integer seed.
+#' @param verbose Logical; print MCMC progress.
 #'
-#' @return An object of class `"bdpaft"` (a list of posterior summaries and
-#'   draws). Notable elements:
-#' \describe{
-#'   \item{`A_mean`, `psi_mean`, `pip`}{posterior means of the loading matrix,
-#'     idiosyncratic variances, and posterior inclusion probabilities.}
-#'   \item{`z_draws`}{integer matrix `n x kept`: posterior cluster
-#'     assignments (1-indexed).}
-#'   \item{`Kplus_draws`}{number of non-empty clusters per kept draw.}
-#'   \item{`beta_mean`, `beta_draws`}{posterior summaries of `covariates`
-#'     coefficients (only when `covariates` is supplied).}
-#'   \item{`alpha_draws`, `a_alpha_draws`, `b_alpha_draws`}{posterior draws of
-#'     the DP concentration and its hyperprior parameters.}
-#' }
+#' @return An object of class `"bdpaft"`.
 #'
 #' @examples
 #' \dontrun{
@@ -68,8 +54,13 @@
 #' X <- matrix(rnorm(n * p), n, p)
 #' time <- rexp(n, rate = 0.1)
 #' status <- rbinom(n, 1, 0.7)
-#' fit <- bdpaft(time, status, X, d = 3, iters = 400, burn = 200, thin = 2)
-#' summary(fit)
+#'
+#' # Point-mass spike (default)
+#' fit_pm <- bdpaft(time, status, X, d = 3, iters = 400, burn = 200, thin = 2)
+#'
+#' # Continuous spike-slab
+#' fit_co <- bdpaft(time, status, X, d = 3, iters = 400, burn = 200, thin = 2,
+#'                  tau_spike2 = 0.01)
 #' }
 #' @seealso [bdpaft_control()]
 #' @export
@@ -85,6 +76,7 @@ bdpaft <- function(time,
                    K_init = 10L,
                    pi0 = 0.02,
                    sigmaA2 = 1.0,
+                   tau_spike2 = 0.0,
                    slice = c("kgw", "walker"),
                    init_A = c("pca", "zero"),
                    init_z = c("kmeans", "random"),
@@ -96,7 +88,6 @@ bdpaft <- function(time,
   init_A <- match.arg(init_A)
   init_z <- match.arg(init_z)
 
-  # --- input validation -----------------------------------------------------
   time   <- as.numeric(time)
   status <- as.integer(status)
   X      <- as.matrix(X)
@@ -109,7 +100,9 @@ bdpaft <- function(time,
     all(status %in% c(0L, 1L)),
     d >= 1, K_max >= 2, K_init >= 2, K_init <= K_max,
     iters > 0, thin > 0,
-    pi0 > 0, pi0 < 1, sigmaA2 > 0
+    pi0 > 0, pi0 < 1, sigmaA2 > 0,
+    tau_spike2 >= 0,
+    tau_spike2 < sigmaA2 || tau_spike2 == 0
   )
 
   if (is.null(burn)) burn <- iters %/% 2L
@@ -119,7 +112,6 @@ bdpaft <- function(time,
   if (!inherits(control, "bdpaft_control"))
     stop("`control` must be the output of bdpaft_control().")
 
-  # --- covariates -----------------------------------------------------------
   if (is.null(covariates)) {
     W <- matrix(0.0, nrow = n, ncol = 0L)
     q <- 0L
@@ -132,7 +124,6 @@ bdpaft <- function(time,
                  else paste0("X", seq_len(q))
   }
 
-  # --- defaults from data ---------------------------------------------------
   logC <- log(time)
   mu0       <- if (is.null(control$mu0)) mean(logC) else control$mu0
   b0_eff    <- if (is.null(control$b0))  0.5 * stats::var(logC) else control$b0
@@ -142,7 +133,6 @@ bdpaft <- function(time,
   B0_beta <- diag(control$beta_prior_var, max(q, 1L))
   if (q == 0L) { b0_beta <- numeric(0); B0_beta <- matrix(0.0, 0, 0) }
 
-  # diagnostic features (top variance) ---------------------------------------
   if (is.null(control$diag_feat_idx)) {
     nkeep <- min(50L, p)
     diag_idx <- order(apply(X, 2, stats::var), decreasing = TRUE)[seq_len(nkeep)]
@@ -150,10 +140,8 @@ bdpaft <- function(time,
     diag_idx <- as.integer(control$diag_feat_idx)
   }
 
-  # --- seed -----------------------------------------------------------------
   if (!is.null(seed)) set.seed(seed)
 
-  # --- compose call to cpp --------------------------------------------------
   if (!verbose) {
     sink_con <- textConnection("bdpaft_silent_log", "w", local = TRUE)
     sink(sink_con, type = "output")
@@ -178,6 +166,7 @@ bdpaft <- function(time,
     burn           = as.integer(burn),
     thin           = as.integer(thin),
     sigmaA2        = sigmaA2,
+    tau_spike2     = tau_spike2,
     pi0            = pi0,
     alpha_fixed    = control$alpha_fixed,
     alpha_init     = control$alpha_init,
@@ -198,7 +187,6 @@ bdpaft <- function(time,
     diag_max_keep  = control$diag_max_keep
   )
 
-  # --- decorate -------------------------------------------------------------
   res$call         <- match.call()
   res$dims         <- c(n = n, p = p, q = q, d = as.integer(d))
   res$cov_names    <- cov_names
@@ -207,6 +195,7 @@ bdpaft <- function(time,
   res$init_z       <- init_z
   res$pi0          <- pi0
   res$sigmaA2      <- sigmaA2
+  res$tau_spike2   <- tau_spike2
   res$iters        <- as.integer(iters)
   res$burn         <- as.integer(burn)
   res$thin         <- as.integer(thin)

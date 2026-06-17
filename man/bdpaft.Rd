@@ -17,6 +17,7 @@ bdpaft(
   K_init = 10L,
   pi0 = 0.02,
   sigmaA2 = 1,
+  tau_spike2 = 0,
   slice = c("kgw", "walker"),
   init_A = c("pca", "zero"),
   init_z = c("kmeans", "random"),
@@ -32,13 +33,12 @@ bdpaft(
 \item{status}{Integer vector of length \code{n}: \code{1} if event observed, \code{0} if
 right-censored.}
 
-\item{X}{Numeric matrix \verb{n x p} of high-dimensional features (e.g.\
-standardized gene expression).}
+\item{X}{Numeric matrix \verb{n x p} of high-dimensional features.}
 
-\item{covariates}{Optional numeric matrix \verb{n x q} of low-dimensional
-covariates that always enter the model. Default \code{NULL} (none).}
+\item{covariates}{Optional numeric matrix \verb{n x q} of covariates that always
+enter the model. Default \code{NULL}.}
 
-\item{d}{Latent factor dimension. Default \code{5}. Set by PCA scree in practice.}
+\item{d}{Latent factor dimension. Default \code{5}.}
 
 \item{iters}{Total MCMC iterations. Default \code{4000}.}
 
@@ -46,49 +46,32 @@ covariates that always enter the model. Default \code{NULL} (none).}
 
 \item{thin}{Thinning interval. Default \code{10}.}
 
-\item{K_max}{Truncation level for the stick-breaking representation of the
-DP. Default \code{50}.}
+\item{K_max}{Truncation level for the DP. Default \code{50}.}
 
 \item{K_init}{Number of mixture components at initialization. Default \code{10}.}
 
-\item{pi0}{Prior inclusion probability for each feature in SSVS. Default
-\code{0.02}.}
+\item{pi0}{Prior inclusion probability in SSVS. Default \code{0.02}.}
 
 \item{sigmaA2}{Slab variance for the SSVS prior on rows of \code{A}. Default
 \code{1.0}.}
 
-\item{slice}{Slice sampler choice for the DP truncation. \code{"kgw"} (default)
-is the Kalli-Griffin-Walker dependent slice; \code{"walker"} is the original
-Walker independent slice.}
+\item{tau_spike2}{Spike variance for continuous spike-slab. Default \code{0}
+(point-mass spike). Set \verb{> 0} (e.g. \code{0.01}) to use the continuous variant.}
 
-\item{init_A}{Initialization of the loading matrix and idiosyncratic
-variances. \code{"pca"} (default) uses an SVD of \code{X}; \code{"zero"} starts at zero.}
+\item{slice}{Slice sampler choice. \code{"kgw"} (default) or \code{"walker"}.}
 
-\item{init_z}{Initialization of cluster assignments. \code{"kmeans"} (default)
-uses k-means on the initial latent scores (requires \code{init_A = "pca"});
-\code{"random"} uses a balanced random assignment.}
+\item{init_A}{Loading initialization. \code{"pca"} (default) or \code{"zero"}.}
 
-\item{control}{A list of advanced control parameters from
-\code{\link[=bdpaft_control]{bdpaft_control()}}. Defaults are sensible for typical use.}
+\item{init_z}{Cluster initialization. \code{"kmeans"} (default) or \code{"random"}.}
 
-\item{seed}{Optional integer seed for reproducibility.}
+\item{control}{Advanced control parameters from \code{\link[=bdpaft_control]{bdpaft_control()}}.}
 
-\item{verbose}{Logical; if \code{TRUE} (default), print MCMC progress.}
+\item{seed}{Optional integer seed.}
+
+\item{verbose}{Logical; print MCMC progress.}
 }
 \value{
-An object of class \code{"bdpaft"} (a list of posterior summaries and
-draws). Notable elements:
-\describe{
-\item{\code{A_mean}, \code{psi_mean}, \code{pip}}{posterior means of the loading matrix,
-idiosyncratic variances, and posterior inclusion probabilities.}
-\item{\code{z_draws}}{integer matrix \verb{n x kept}: posterior cluster
-assignments (1-indexed).}
-\item{\code{Kplus_draws}}{number of non-empty clusters per kept draw.}
-\item{\code{beta_mean}, \code{beta_draws}}{posterior summaries of \code{covariates}
-coefficients (only when \code{covariates} is supplied).}
-\item{\code{alpha_draws}, \code{a_alpha_draws}, \code{b_alpha_draws}}{posterior draws of
-the DP concentration and its hyperprior parameters.}
-}
+An object of class \code{"bdpaft"}.
 }
 \description{
 Bayesian Dirichlet-process accelerated failure-time model with a shared
@@ -103,9 +86,14 @@ The observed time is modeled on the log scale as
 
 with cluster assignment \eqn{z_i} drawn from a Dirichlet process over
 \eqn{(\mu_k, \sigma^2_k, \nu_k, \Sigma_k)}. The high-dimensional features are
-modeled as \eqn{X_i = U_i A^\top + e_i} with a point-mass spike-and-slab
-prior on the rows of \eqn{A}; latent factors \eqn{U_i} share the cluster
-structure via \eqn{U_i \mid z_i \sim \mathcal{N}(\nu_{z_i}, \Sigma_{z_i})}.
+modeled as \eqn{X_i = U_i A^\top + e_i} with a spike-and-slab prior on the
+rows of \eqn{A}. Two variants are supported:
+\itemize{
+\item \strong{Point-mass} (\code{tau_spike2 = 0}, default): inactive rows
+are exactly zero.
+\item \strong{Continuous} (\code{tau_spike2 > 0}): inactive rows are drawn
+from a narrow Normal with variance \code{tau_spike2}.
+}
 }
 \examples{
 \dontrun{
@@ -114,8 +102,13 @@ n <- 60; p <- 80
 X <- matrix(rnorm(n * p), n, p)
 time <- rexp(n, rate = 0.1)
 status <- rbinom(n, 1, 0.7)
-fit <- bdpaft(time, status, X, d = 3, iters = 400, burn = 200, thin = 2)
-summary(fit)
+
+# Point-mass spike (default)
+fit_pm <- bdpaft(time, status, X, d = 3, iters = 400, burn = 200, thin = 2)
+
+# Continuous spike-slab
+fit_co <- bdpaft(time, status, X, d = 3, iters = 400, burn = 200, thin = 2,
+                 tau_spike2 = 0.01)
 }
 }
 \seealso{

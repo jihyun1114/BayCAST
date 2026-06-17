@@ -1,7 +1,7 @@
 Package: bdpaft
 Type: Package
 Title: Bayesian Dirichlet-Process Accelerated Failure-Time Model with Factor-Analytic Spike-and-Slab Loadings
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: c(
     person(given = "FIRST",
            family = "LAST",
