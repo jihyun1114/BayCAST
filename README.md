@@ -1,11 +1,11 @@
-# baycast
+# BayCAST
 
 <!-- badges: start -->
 <!-- badges: end -->
 
-**Bayesian Dirichlet-Process Accelerated Failure-Time model with factor-analytic spike-and-slab loadings.**
+**BayCAST: a Bayesian Current-status Accelerated Failure Time model with subgroup-targeted inference, factor-analytic loadings, and spike-and-slab variable selection.**
 
-`baycast` fits a survival model that simultaneously (i) clusters patients via a Dirichlet-process mixture on a shared latent factor `U`, and (ii) selects high-dimensional features via spike-and-slab on the loading matrix `A`. Both point-mass and continuous spike variants are supported through a single argument `tau_spike2`.
+`BayCAST` fits a survival model that simultaneously (i) clusters patients via a Dirichlet-process mixture on a shared latent factor `U`, and (ii) selects high-dimensional features via spike-and-slab on the loading matrix `A`. Both point-mass and continuous spike variants are supported through a single argument `tau_spike2`.
 
 ## Model
 
@@ -27,7 +27,7 @@ with spike-and-slab on the rows of `A`.
 
 ```r
 # install.packages("devtools")
-devtools::install_github("jihyun1114/baycast")
+devtools::install_github("jihyun1114/BayCAST")
 ```
 
 Requires `Rcpp`, `RcppArmadillo`. Tested on R ≥ 4.2.
