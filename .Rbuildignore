@@ -1,7 +1,6 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^LICENSE\.md$
-^data-raw$
 ^README\.Rmd$
 ^\.github$
 ^\.gitignore$
@@ -9,17 +8,7 @@
 ^CRAN-RELEASE$
 ^docs$
 ^_pkgdown\.yml$
-^analysis$
-^data-private$
-^legacy_cpp$
-^output$
-^sim_output$
-^sim_output_msi$
 ^\.RData$
 ^\.Rhistory$
-^bdpaft\.Rproj$
-^DEMO_baycast_package\.R$
-^INSTALL\.md$
-^R_msi_aggregate\.R$
-^demo_fit_quick\.rds$
+^paper$
 ^.*\.sh$

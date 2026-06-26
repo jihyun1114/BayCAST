@@ -48,12 +48,6 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 
-analysis/
-data-private/
-legacy_cpp/
-output/
-sim_output/
-sim_output_msi/
 .DS_Store
 .RData
 .Rhistory
@@ -67,3 +61,4 @@ src/*.cpp.bak
 demo_fit_quick.rds
 *.so
 *.o
+paper/
