@@ -7,7 +7,7 @@
 posterior_pip(x, threshold = 0.5)
 }
 \arguments{
-\item{x}{A fitted \code{bdpaft} object.}
+\item{x}{A fitted \code{baycast} object.}
 
 \item{threshold}{PIP threshold. Default \code{0.5}.}
 }

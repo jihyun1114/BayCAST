@@ -1,4 +1,4 @@
 library(testthat)
-library(bdpaft)
+library(BayCAST)
 
-test_check("bdpaft")
+test_check("BayCAST")

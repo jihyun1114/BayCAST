@@ -1,7 +1,7 @@
-// bdpaft_continuous_ssvs.cpp
-// BDPAFT sampler with CONTINUOUS spike-slab variable selection.
+// baycast_continuous_ssvs.cpp
+// BayCAST sampler with CONTINUOUS spike-slab variable selection.
 //
-// Difference from point-mass version (bdpaft.cpp):
+// Difference from point-mass version (baycast.cpp):
 //   point-mass:  A_{j.} | delta_j = 0  has mass at exactly 0
 //                A_{j.} | delta_j = 1  ~ N(0, sigmaA2 * I_d)   (slab)
 //
@@ -199,7 +199,7 @@ static void update_b_hyperprior(double& b_alpha, double alpha_dp, double a_alpha
 
 // ============================================================================
 // [[Rcpp::export]]
-Rcpp::List bdpaft_cpp(
+Rcpp::List baycast_cpp(
   const arma::vec&     Y,
   const arma::vec&     logC,
   const arma::mat&     X,

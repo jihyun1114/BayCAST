@@ -7,7 +7,7 @@
 posterior_beta(x, cov_names = NULL, prob = 0.95)
 }
 \arguments{
-\item{x}{A fitted \code{bdpaft} object.}
+\item{x}{A fitted \code{baycast} object.}
 
 \item{cov_names}{Optional character vector of covariate names.}
 

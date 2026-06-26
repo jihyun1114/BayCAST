@@ -1,6 +1,6 @@
 #' @export
-print.bdpaft <- function(x, ...) {
-  cat("BDPAFT fit\n")
+print.baycast <- function(x, ...) {
+  cat("BayCAST fit\n")
   cat(sprintf("  n = %d  p = %d  q = %d  d = %d\n",
               x$dims["n"], x$dims["p"], x$dims["q"], x$dims["d"]))
   cat(sprintf("  iters = %d  burn = %d  thin = %d  (kept = %d)\n",
@@ -15,7 +15,7 @@ print.bdpaft <- function(x, ...) {
 }
 
 #' @export
-summary.bdpaft <- function(object, pip_threshold = 0.5, ...) {
+summary.baycast <- function(object, pip_threshold = 0.5, ...) {
   Kpl  <- object$Kplus_draws
   z_last <- object$z_draws[, ncol(object$z_draws)]
   ctab  <- sort(as.integer(table(z_last)), decreasing = TRUE)
@@ -49,13 +49,13 @@ summary.bdpaft <- function(object, pip_threshold = 0.5, ...) {
     alpha_q       = stats::quantile(object$alpha_draws, c(0.025, 0.5, 0.975)),
     beta_summary  = beta_summary
   )
-  class(out) <- "summary.bdpaft"
+  class(out) <- "summary.baycast"
   out
 }
 
 #' @export
-print.summary.bdpaft <- function(x, ...) {
-  cat("BDPAFT posterior summary\n")
+print.summary.baycast <- function(x, ...) {
+  cat("BayCAST posterior summary\n")
   cat(sprintf("  n=%d, p=%d, q=%d, d=%d   kept draws: %d   slice=%s\n",
               x$dims["n"], x$dims["p"], x$dims["q"], x$dims["d"],
               x$kept, x$slice))

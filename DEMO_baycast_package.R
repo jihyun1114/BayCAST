@@ -1,11 +1,11 @@
 # ============================================================
-# DEMO_bdpaft_package.R
+# DEMO_baycast_package.R
 #
-# 미팅 시연용 — bdpaft 패키지가 CATHGEN 실데이터로 실제로 돌아간다
+# 미팅 시연용 — baycast 패키지가 CATHGEN 실데이터로 실제로 돌아간다
 # 는 것을 한 화면에 보여주는 스크립트.
 #
-# Usage (run from project root ~/bdpaft):
-#   source("DEMO_bdpaft_package.R")
+# Usage (run from project root ~/baycast):
+#   source("DEMO_baycast_package.R")
 #
 # Two modes:
 #   QUICK = TRUE   : iters=500,  burn=250,  ~1.5 min   ← 미팅 중 라이브용
@@ -15,15 +15,15 @@
 QUICK <- TRUE
 
 cat("\n", strrep("=", 60), "\n", sep = "")
-cat(" bdpaft package — live demo on CATHGEN data\n")
+cat(" baycast package — live demo on CATHGEN data\n")
 cat(strrep("=", 60), "\n\n", sep = "")
 
 # ============================================================
 # 1. Load the installed package
 # ============================================================
-library(bdpaft)
-cat("Package version:", as.character(packageVersion("bdpaft")), "\n")
-cat("Source: github.com/jihyun1114/bdpaft\n\n")
+library(BayCAST)
+cat("Package version:", as.character(packageVersion("baycast")), "\n")
+cat("Source: github.com/jihyun1114/baycast\n\n")
 
 # ============================================================
 # 2. Load CATHGEN preprocessed data
@@ -69,7 +69,7 @@ if (QUICK) {
 
 t0 <- Sys.time()
 
-fit <- bdpaft(
+fit <- baycast(
   time       = time,
   status     = status,
   X          = X,

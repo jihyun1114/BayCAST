@@ -1,6 +1,6 @@
-Package: bdpaft
+Package: BayCAST
 Type: Package
-Title: Bayesian Dirichlet-Process Accelerated Failure-Time Model with Factor-Analytic Spike-and-Slab Loadings
+Title: BayCAST: Bayesian Current-status AFT with Subgroup-Targeted Inference
 Version: 0.2.0
 Authors@R: c(
     person(given = "FIRST",
@@ -20,8 +20,8 @@ Description: Implements a Bayesian semiparametric accelerated failure-time model
     The model is designed for survival data with high-dimensional omics
     covariates and is described in <preprint URL TBD>.
 License: MIT + file LICENSE
-URL: https://github.com/kim02688/bdpaft
-BugReports: https://github.com/kim02688/bdpaft/issues
+URL: https://github.com/jihyun1114/BayCAST
+BugReports: https://github.com/jihyun1114/BayCAST/issues
 Encoding: UTF-8
 LazyData: false
 Depends:

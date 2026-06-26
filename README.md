@@ -1,11 +1,11 @@
-# bdpaft
+# baycast
 
 <!-- badges: start -->
 <!-- badges: end -->
 
 **Bayesian Dirichlet-Process Accelerated Failure-Time model with factor-analytic spike-and-slab loadings.**
 
-`bdpaft` fits a survival model that simultaneously (i) clusters patients via a Dirichlet-process mixture on a shared latent factor `U`, and (ii) selects high-dimensional features via spike-and-slab on the loading matrix `A`. Both point-mass and continuous spike variants are supported through a single argument `tau_spike2`.
+`baycast` fits a survival model that simultaneously (i) clusters patients via a Dirichlet-process mixture on a shared latent factor `U`, and (ii) selects high-dimensional features via spike-and-slab on the loading matrix `A`. Both point-mass and continuous spike variants are supported through a single argument `tau_spike2`.
 
 ## Model
 
@@ -27,7 +27,7 @@ with spike-and-slab on the rows of `A`.
 
 ```r
 # install.packages("devtools")
-devtools::install_github("jihyun1114/bdpaft")
+devtools::install_github("jihyun1114/baycast")
 ```
 
 Requires `Rcpp`, `RcppArmadillo`. Tested on R ≥ 4.2.
@@ -35,7 +35,7 @@ Requires `Rcpp`, `RcppArmadillo`. Tested on R ≥ 4.2.
 ## Quick start
 
 ```r
-library(bdpaft)
+library(BayCAST)
 
 set.seed(1)
 n <- 100; p <- 200
@@ -44,13 +44,13 @@ time   <- rexp(n, rate = 0.1)
 status <- rbinom(n, 1, 0.7)
 
 # Point-mass spike (default)
-fit <- bdpaft(time, status, X,
+fit <- baycast(time, status, X,
               d = 5,
               iters = 2000, burn = 1000, thin = 5,
               seed = 1)
 
 # Continuous spike-slab
-fit_co <- bdpaft(time, status, X,
+fit_co <- baycast(time, status, X,
                  d = 5,
                  iters = 2000, burn = 1000, thin = 5,
                  tau_spike2 = 0.01,

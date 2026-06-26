@@ -1,4 +1,4 @@
-#' Fit the BDPAFT model
+#' Fit the BayCAST model
 #'
 #' Bayesian Dirichlet-process accelerated failure-time model with a shared
 #' factor-analytic representation of the high-dimensional covariates and
@@ -41,11 +41,11 @@
 #' @param slice Slice sampler choice. `"kgw"` (default) or `"walker"`.
 #' @param init_A Loading initialization. `"pca"` (default) or `"zero"`.
 #' @param init_z Cluster initialization. `"kmeans"` (default) or `"random"`.
-#' @param control Advanced control parameters from [bdpaft_control()].
+#' @param control Advanced control parameters from [baycast_control()].
 #' @param seed Optional integer seed.
 #' @param verbose Logical; print MCMC progress.
 #'
-#' @return An object of class `"bdpaft"`.
+#' @return An object of class `"baycast"`.
 #'
 #' @examples
 #' \dontrun{
@@ -56,15 +56,15 @@
 #' status <- rbinom(n, 1, 0.7)
 #'
 #' # Point-mass spike (default)
-#' fit_pm <- bdpaft(time, status, X, d = 3, iters = 400, burn = 200, thin = 2)
+#' fit_pm <- baycast(time, status, X, d = 3, iters = 400, burn = 200, thin = 2)
 #'
 #' # Continuous spike-slab
-#' fit_co <- bdpaft(time, status, X, d = 3, iters = 400, burn = 200, thin = 2,
+#' fit_co <- baycast(time, status, X, d = 3, iters = 400, burn = 200, thin = 2,
 #'                  tau_spike2 = 0.01)
 #' }
-#' @seealso [bdpaft_control()]
+#' @seealso [baycast_control()]
 #' @export
-bdpaft <- function(time,
+baycast <- function(time,
                    status,
                    X,
                    covariates = NULL,
@@ -80,7 +80,7 @@ bdpaft <- function(time,
                    slice = c("kgw", "walker"),
                    init_A = c("pca", "zero"),
                    init_z = c("kmeans", "random"),
-                   control = bdpaft_control(),
+                   control = baycast_control(),
                    seed = NULL,
                    verbose = TRUE) {
 
@@ -109,8 +109,8 @@ bdpaft <- function(time,
   burn <- as.integer(burn)
   stopifnot(iters > burn)
 
-  if (!inherits(control, "bdpaft_control"))
-    stop("`control` must be the output of bdpaft_control().")
+  if (!inherits(control, "baycast_control"))
+    stop("`control` must be the output of baycast_control().")
 
   if (is.null(covariates)) {
     W <- matrix(0.0, nrow = n, ncol = 0L)
@@ -143,12 +143,12 @@ bdpaft <- function(time,
   if (!is.null(seed)) set.seed(seed)
 
   if (!verbose) {
-    sink_con <- textConnection("bdpaft_silent_log", "w", local = TRUE)
+    sink_con <- textConnection("baycast_silent_log", "w", local = TRUE)
     sink(sink_con, type = "output")
     on.exit({ sink(NULL, type = "output"); close(sink_con) }, add = TRUE)
   }
 
-  res <- bdpaft_cpp(
+  res <- baycast_cpp(
     Y              = as.numeric(status),
     logC           = logC,
     X              = X,
@@ -200,6 +200,6 @@ bdpaft <- function(time,
   res$burn         <- as.integer(burn)
   res$thin         <- as.integer(thin)
 
-  class(res) <- c("bdpaft", "list")
+  class(res) <- c("baycast", "list")
   res
 }

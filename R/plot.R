@@ -1,10 +1,10 @@
-#' Diagnostic plots for a fitted `bdpaft` model
+#' Diagnostic plots for a fitted `baycast` model
 #'
-#' Produces one of several diagnostic plots from a `bdpaft` fit:
+#' Produces one of several diagnostic plots from a `baycast` fit:
 #' MCMC trace plots, posterior inclusion probability summary, or
 #' cluster-specific baseline survivor curves.
 #'
-#' @param x A fitted object of class `"bdpaft"`.
+#' @param x A fitted object of class `"baycast"`.
 #' @param type Character; one of `"trace"`, `"pip"`, or `"survival"`.
 #' @param top_pip Integer; for `type = "pip"`, the number of top features
 #'   to display. Default `30`.
@@ -12,7 +12,7 @@
 #'
 #' @return Invisibly returns `x`.
 #' @export
-plot.bdpaft <- function(x, type = c("trace", "pip", "survival"),
+plot.baycast <- function(x, type = c("trace", "pip", "survival"),
                         top_pip = 30, ...) {
   type <- match.arg(type)
   op <- graphics::par(no.readonly = TRUE)

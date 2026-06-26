@@ -1,4 +1,4 @@
-# Building and installing `bdpaft`
+# Building and installing `baycast`
 
 ## 1. Once-only setup
 
@@ -8,10 +8,10 @@ install.packages(c("devtools", "roxygen2", "testthat", "Rcpp", "RcppArmadillo"))
 
 ## 2. First-time package generation
 
-After extracting this scaffold into your existing `bdpaft/` repo:
+After extracting this scaffold into your existing `baycast/` repo:
 
 ```r
-setwd("path/to/bdpaft")
+setwd("path/to/baycast")
 devtools::document()        # regenerates man/*.Rd and NAMESPACE
 devtools::load_all()        # source the package without installing
 ```
@@ -25,7 +25,7 @@ that gets overwritten on first `document()` — that is expected.
 ```r
 devtools::install(".")
 # or, equivalently, from the parent directory:
-# R CMD INSTALL bdpaft
+# R CMD INSTALL baycast
 ```
 
 First compile takes ~30-60 s (RcppArmadillo headers are large).
@@ -39,8 +39,8 @@ devtools::test()                # quick smoke tests (<1 min)
 ## 5. Full CRAN check (before submission, much later)
 
 ```bash
-R CMD build bdpaft
-R CMD check --as-cran bdpaft_0.1.0.tar.gz
+R CMD build baycast
+R CMD check --as-cran baycast_0.1.0.tar.gz
 ```
 
 Expect a few notes the first time around — they will need cleanup before CRAN
@@ -56,24 +56,24 @@ Before pushing, update three placeholders:
 
 ## 7. Sanity-check the C++ source
 
-The bundled `src/bdpaft.cpp` was derived from your standalone
-`bdpaft.cpp`. If your production version is actually `bdpaft_v2.cpp`,
-diff the two and port any v2-only changes into `src/bdpaft.cpp` before
+The bundled `src/baycast.cpp` was derived from your standalone
+`baycast.cpp`. If your production version is actually `baycast_v2.cpp`,
+diff the two and port any v2-only changes into `src/baycast.cpp` before
 `devtools::install()`:
 
 ```bash
-diff -u /path/to/bdpaft.cpp /path/to/bdpaft_v2.cpp
+diff -u /path/to/baycast.cpp /path/to/baycast_v2.cpp
 ```
 
-Any differences should be applied to `src/bdpaft.cpp`. Watch in particular
+Any differences should be applied to `src/baycast.cpp`. Watch in particular
 for the function signature: in the package version the exported function is
-named `bdpaft_cpp` (renamed from `bdpaft` to avoid colliding with the R
+named `baycast_cpp` (renamed from `baycast` to avoid colliding with the R
 wrapper).
 
 ## 8. Optional: keep your analysis repo separate
 
 This package contains only the algorithm. Paper-specific analysis scripts
-(R00..R04, output/) should live in a sibling repo such as `bdpaft-cathgen`.
+(R00..R04, output/) should live in a sibling repo such as `baycast-cathgen`.
 
 ## What this scaffold does NOT include yet
 

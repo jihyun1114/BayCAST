@@ -7,7 +7,7 @@
 posterior_z(x)
 }
 \arguments{
-\item{x}{A fitted \code{bdpaft} object.}
+\item{x}{A fitted \code{baycast} object.}
 }
 \value{
 Integer vector of length \code{n} (number of subjects).

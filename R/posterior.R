@@ -3,12 +3,12 @@
 #' For each subject, returns the most frequent cluster label in the
 #' posterior draws.
 #'
-#' @param x A fitted `bdpaft` object.
+#' @param x A fitted `baycast` object.
 #'
 #' @return Integer vector of length `n` (number of subjects).
 #' @export
 posterior_z <- function(x) {
-  stopifnot(inherits(x, "bdpaft"))
+  stopifnot(inherits(x, "baycast"))
   if (is.null(x$z_draws)) stop("`z_draws` not found in fit.")
   apply(x$z_draws, 1, function(zi) {
     tab <- table(zi)
@@ -18,14 +18,14 @@ posterior_z <- function(x) {
 
 #' Features selected at a given PIP threshold
 #'
-#' @param x A fitted `bdpaft` object.
+#' @param x A fitted `baycast` object.
 #' @param threshold PIP threshold. Default `0.5`.
 #'
 #' @return Integer vector of feature indices with PIP above the threshold,
 #'   sorted by PIP (descending). Has attribute `"pip"` with the values.
 #' @export
 posterior_pip <- function(x, threshold = 0.5) {
-  stopifnot(inherits(x, "bdpaft"))
+  stopifnot(inherits(x, "baycast"))
   if (is.null(x$pip)) stop("`pip` not found in fit.")
   sel <- which(x$pip > threshold)
   ord <- sel[order(x$pip[sel], decreasing = TRUE)]
@@ -35,7 +35,7 @@ posterior_pip <- function(x, threshold = 0.5) {
 
 #' Posterior summary of covariate coefficients
 #'
-#' @param x A fitted `bdpaft` object.
+#' @param x A fitted `baycast` object.
 #' @param cov_names Optional character vector of covariate names.
 #' @param prob Width of the credible interval. Default `0.95`.
 #'
@@ -43,7 +43,7 @@ posterior_pip <- function(x, threshold = 0.5) {
 #'   (CI excludes zero).
 #' @export
 posterior_beta <- function(x, cov_names = NULL, prob = 0.95) {
-  stopifnot(inherits(x, "bdpaft"))
+  stopifnot(inherits(x, "baycast"))
   if (is.null(x$beta_draws)) stop("`beta_draws` not found in fit.")
   q <- nrow(x$beta_draws)
   if (q == 0) return(data.frame())

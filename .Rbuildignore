@@ -18,3 +18,8 @@
 ^\.RData$
 ^\.Rhistory$
 ^bdpaft\.Rproj$
+^DEMO_baycast_package\.R$
+^INSTALL\.md$
+^R_msi_aggregate\.R$
+^demo_fit_quick\.rds$
+^.*\.sh$
