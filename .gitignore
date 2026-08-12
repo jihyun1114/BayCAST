@@ -49,16 +49,9 @@ po/*~
 rsconnect/
 
 .DS_Store
-.RData
-.Rhistory
-.Rproj.user/
 src/*.o
 src/*.so
 src/*.dll
 
 # v0.2.0 cleanup
 src/*.cpp.bak
-demo_fit_quick.rds
-*.so
-*.o
-paper/
