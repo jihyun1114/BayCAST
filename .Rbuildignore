@@ -12,3 +12,6 @@
 ^\.Rhistory$
 ^paper$
 ^.*\.sh$
+^\.claude$
+^results$
+^\.DS_Store$

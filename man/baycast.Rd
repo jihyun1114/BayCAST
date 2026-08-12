@@ -16,8 +16,8 @@ baycast(
   K_max = 50L,
   K_init = 10L,
   pi0 = 0.02,
-  sigmaA2 = 1,
-  tau_spike2 = 0,
+  sigma_slab2 = 1,
+  sigma_spike2 = 0,
   slice = c("kgw", "walker"),
   init_A = c("pca", "zero"),
   init_z = c("kmeans", "random"),
@@ -52,13 +52,18 @@ enter the model. Default \code{NULL}.}
 
 \item{pi0}{Prior inclusion probability in SSVS. Default \code{0.02}.}
 
-\item{sigmaA2}{Slab variance for the SSVS prior on rows of \code{A}. Default
+\item{sigma_slab2}{Slab variance for the SSVS prior on rows of \code{A}. Default
 \code{1.0}.}
 
-\item{tau_spike2}{Spike variance for continuous spike-slab. Default \code{0}
+\item{sigma_spike2}{Spike variance for continuous spike-slab. Default \code{0}
 (point-mass spike). Set \verb{> 0} (e.g. \code{0.01}) to use the continuous variant.}
 
-\item{slice}{Slice sampler choice. \code{"kgw"} (default) or \code{"walker"}.}
+\item{slice}{Slice sampler for the Dirichlet-process stick-breaking weights.
+\code{"kgw"} (default) is the Kalli-Griffin-Walker slice sampler
+(Kalli, Griffin and Walker, 2011, \emph{Statistics and Computing} 21(1),
+93--105, \doi{10.1007/s11222-009-9150-y}), which uses an adaptive set of
+deterministic decreasing weights; \code{"walker"} is the original slice sampler
+of Walker (2007, \emph{Communications in Statistics} 36(1), 45--54).}
 
 \item{init_A}{Loading initialization. \code{"pca"} (default) or \code{"zero"}.}
 
@@ -89,10 +94,10 @@ with cluster assignment \eqn{z_i} drawn from a Dirichlet process over
 modeled as \eqn{X_i = U_i A^\top + e_i} with a spike-and-slab prior on the
 rows of \eqn{A}. Two variants are supported:
 \itemize{
-\item \strong{Point-mass} (\code{tau_spike2 = 0}, default): inactive rows
+\item \strong{Point-mass} (\code{sigma_spike2 = 0}, default): inactive rows
 are exactly zero.
-\item \strong{Continuous} (\code{tau_spike2 > 0}): inactive rows are drawn
-from a narrow Normal with variance \code{tau_spike2}.
+\item \strong{Continuous} (\code{sigma_spike2 > 0}): inactive rows are drawn
+from a narrow Normal with variance \code{sigma_spike2}.
 }
 }
 \examples{
@@ -108,7 +113,7 @@ fit_pm <- baycast(time, status, X, d = 3, iters = 400, burn = 200, thin = 2)
 
 # Continuous spike-slab
 fit_co <- baycast(time, status, X, d = 3, iters = 400, burn = 200, thin = 2,
-                 tau_spike2 = 0.01)
+                 sigma_spike2 = 0.01)
 }
 }
 \seealso{

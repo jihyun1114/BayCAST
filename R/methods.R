@@ -7,7 +7,7 @@ print.baycast <- function(x, ...) {
               x$iters, x$burn, x$thin, x$kept))
   cat(sprintf("  slice = %s   init_A = %s   init_z = %s\n",
               x$slice, x$init_A, x$init_z))
-  cat(sprintf("  pi0 = %.3g   sigmaA2 = %.3g\n", x$pi0, x$sigmaA2))
+  cat(sprintf("  pi0 = %.3g   sigma_slab2 = %.3g\n", x$pi0, x$sigma_slab2))
   cat(sprintf("  K+ posterior mode = %d   PIP > 0.5: %d / %d\n",
               .Kplus_mode(x$Kplus_draws),
               sum(x$pip > 0.5), length(x$pip)))

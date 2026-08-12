@@ -5,7 +5,7 @@
 
 **BayCAST: a Bayesian Current-status Accelerated Failure Time model with subgroup-targeted inference, factor-analytic loadings, and spike-and-slab variable selection.**
 
-`BayCAST` fits a survival model that simultaneously (i) clusters patients via a Dirichlet-process mixture on a shared latent factor `U`, and (ii) selects high-dimensional features via spike-and-slab on the loading matrix `A`. Both point-mass and continuous spike variants are supported through a single argument `tau_spike2`.
+`BayCAST` fits a survival model that simultaneously (i) clusters patients via a Dirichlet-process mixture on a shared latent factor `U`, and (ii) selects high-dimensional features via spike-and-slab on the loading matrix `A`. Both point-mass and continuous spike variants are supported through a single argument `sigma_spike2`.
 
 ## Model
 
@@ -53,7 +53,7 @@ fit <- baycast(time, status, X,
 fit_co <- baycast(time, status, X,
                  d = 5,
                  iters = 2000, burn = 1000, thin = 5,
-                 tau_spike2 = 0.01,
+                 sigma_spike2 = 0.01,
                  seed = 1)
 ```
 
@@ -67,7 +67,7 @@ fit_co <- baycast(time, status, X,
 | `Kplus_draws`  | number of active clusters per iteration       |
 | `alpha_draws`  | DP concentration parameter draws              |
 | `ssvs_mode`    | `"point_mass"` or `"continuous"`              |
-| `tau_spike2`   | spike variance used                           |
+| `sigma_spike2`   | spike variance used                           |
 
 ## Variable selection and clustering
 

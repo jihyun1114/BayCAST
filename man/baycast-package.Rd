@@ -27,12 +27,8 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: FIRST LAST \email{your.email@example.com}
+\strong{Maintainer}: Jihyun Kim \email{kim02688@umn.edu}
 
-Authors:
-\itemize{
-  \item FIRST LAST \email{your.email@example.com}
-  \item Thierry Chekouo \email{thierry.chekouo@example.com}
 }
 
 }

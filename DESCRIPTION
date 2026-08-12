@@ -2,16 +2,11 @@ Package: BayCAST
 Type: Package
 Title: BayCAST: Bayesian Current-status AFT with Subgroup-Targeted Inference
 Version: 0.2.0
-Authors@R: c(
-    person(given = "FIRST",
-           family = "LAST",
+Authors@R:
+    person(given = "Jihyun",
+           family = "Kim",
            role = c("aut", "cre"),
-           email = "your.email@example.com"),
-    person(given = "Thierry",
-           family = "Chekouo",
-           role = "aut",
-           email = "thierry.chekouo@example.com")
-  )
+           email = "kim02688@umn.edu")
 Description: Implements a Bayesian semiparametric accelerated failure-time model
     with a Dirichlet-process mixture over a latent factor structure. Posterior
     inference is performed by Gibbs sampling using the Kalli-Griffin-Walker

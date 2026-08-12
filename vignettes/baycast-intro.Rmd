@@ -21,7 +21,7 @@ knitr::opts_chunk$set(
 
 - Patients are clustered through a Dirichlet-process mixture on a shared latent factor `U`.
 - High-dimensional features are selected via spike-and-slab on the loading matrix `A`.
-- Both **point-mass** (default) and **continuous** spike-slab variants are supported through a single argument `tau_spike2`.
+- Both **point-mass** (default) and **continuous** spike-slab variants are supported through a single argument `sigma_spike2`.
 
 This vignette walks through a small synthetic example.
 
@@ -99,7 +99,7 @@ plot(fit_pm, type = "pip", top_pip = 25)
 fit_co <- baycast(time, status, X, covariates = W,
                  d = 3, K_init = 5, K_max = 20,
                  iters = 1500, burn = 750, thin = 5,
-                 tau_spike2 = 0.01,
+                 sigma_spike2 = 0.01,
                  verbose = FALSE, seed = 1)
 ```
 

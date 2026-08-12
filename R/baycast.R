@@ -14,10 +14,10 @@
 #' modeled as \eqn{X_i = U_i A^\top + e_i} with a spike-and-slab prior on the
 #' rows of \eqn{A}. Two variants are supported:
 #' \itemize{
-#'   \item \strong{Point-mass} (\code{tau_spike2 = 0}, default): inactive rows
+#'   \item \strong{Point-mass} (\code{sigma_spike2 = 0}, default): inactive rows
 #'     are exactly zero.
-#'   \item \strong{Continuous} (\code{tau_spike2 > 0}): inactive rows are drawn
-#'     from a narrow Normal with variance \code{tau_spike2}.
+#'   \item \strong{Continuous} (\code{sigma_spike2 > 0}): inactive rows are drawn
+#'     from a narrow Normal with variance \code{sigma_spike2}.
 #' }
 #'
 #' @param time Numeric vector of length `n`: observed event or censoring time
@@ -34,11 +34,16 @@
 #' @param K_max Truncation level for the DP. Default `50`.
 #' @param K_init Number of mixture components at initialization. Default `10`.
 #' @param pi0 Prior inclusion probability in SSVS. Default `0.02`.
-#' @param sigmaA2 Slab variance for the SSVS prior on rows of `A`. Default
+#' @param sigma_slab2 Slab variance for the SSVS prior on rows of `A`. Default
 #'   `1.0`.
-#' @param tau_spike2 Spike variance for continuous spike-slab. Default `0`
+#' @param sigma_spike2 Spike variance for continuous spike-slab. Default `0`
 #'   (point-mass spike). Set `> 0` (e.g. `0.01`) to use the continuous variant.
-#' @param slice Slice sampler choice. `"kgw"` (default) or `"walker"`.
+#' @param slice Slice sampler for the Dirichlet-process stick-breaking weights.
+#'   `"kgw"` (default) is the Kalli-Griffin-Walker slice sampler
+#'   (Kalli, Griffin and Walker, 2011, \emph{Statistics and Computing} 21(1),
+#'   93--105, \doi{10.1007/s11222-009-9150-y}), which uses an adaptive set of
+#'   deterministic decreasing weights; `"walker"` is the original slice sampler
+#'   of Walker (2007, \emph{Communications in Statistics} 36(1), 45--54).
 #' @param init_A Loading initialization. `"pca"` (default) or `"zero"`.
 #' @param init_z Cluster initialization. `"kmeans"` (default) or `"random"`.
 #' @param control Advanced control parameters from [baycast_control()].
@@ -60,7 +65,7 @@
 #'
 #' # Continuous spike-slab
 #' fit_co <- baycast(time, status, X, d = 3, iters = 400, burn = 200, thin = 2,
-#'                  tau_spike2 = 0.01)
+#'                  sigma_spike2 = 0.01)
 #' }
 #' @seealso [baycast_control()]
 #' @export
@@ -75,8 +80,8 @@ baycast <- function(time,
                    K_max = 50L,
                    K_init = 10L,
                    pi0 = 0.02,
-                   sigmaA2 = 1.0,
-                   tau_spike2 = 0.0,
+                   sigma_slab2 = 1.0,
+                   sigma_spike2 = 0.0,
                    slice = c("kgw", "walker"),
                    init_A = c("pca", "zero"),
                    init_z = c("kmeans", "random"),
@@ -100,9 +105,9 @@ baycast <- function(time,
     all(status %in% c(0L, 1L)),
     d >= 1, K_max >= 2, K_init >= 2, K_init <= K_max,
     iters > 0, thin > 0,
-    pi0 > 0, pi0 < 1, sigmaA2 > 0,
-    tau_spike2 >= 0,
-    tau_spike2 < sigmaA2 || tau_spike2 == 0
+    pi0 > 0, pi0 < 1, sigma_slab2 > 0,
+    sigma_spike2 >= 0,
+    sigma_spike2 < sigma_slab2 || sigma_spike2 == 0
   )
 
   if (is.null(burn)) burn <- iters %/% 2L
@@ -165,8 +170,8 @@ baycast <- function(time,
     iters          = as.integer(iters),
     burn           = as.integer(burn),
     thin           = as.integer(thin),
-    sigmaA2        = sigmaA2,
-    tau_spike2     = tau_spike2,
+    sigma_slab2        = sigma_slab2,
+    sigma_spike2     = sigma_spike2,
     pi0            = pi0,
     alpha_fixed    = control$alpha_fixed,
     alpha_init     = control$alpha_init,
@@ -194,8 +199,8 @@ baycast <- function(time,
   res$init_A       <- init_A
   res$init_z       <- init_z
   res$pi0          <- pi0
-  res$sigmaA2      <- sigmaA2
-  res$tau_spike2   <- tau_spike2
+  res$sigma_slab2      <- sigma_slab2
+  res$sigma_spike2   <- sigma_spike2
   res$iters        <- as.integer(iters)
   res$burn         <- as.integer(burn)
   res$thin         <- as.integer(thin)

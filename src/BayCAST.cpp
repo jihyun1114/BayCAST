@@ -3,17 +3,17 @@
 //
 // Difference from point-mass version (baycast.cpp):
 //   point-mass:  A_{j.} | delta_j = 0  has mass at exactly 0
-//                A_{j.} | delta_j = 1  ~ N(0, sigmaA2 * I_d)   (slab)
+//                A_{j.} | delta_j = 1  ~ N(0, sigma_slab2 * I_d)   (slab)
 //
-//   continuous:  A_{j.} | delta_j = 0  ~ N(0, tau_spike2 * I_d)  (narrow spike)
-//                A_{j.} | delta_j = 1  ~ N(0, sigmaA2     * I_d)  (slab)
+//   continuous:  A_{j.} | delta_j = 0  ~ N(0, sigma_spike2 * I_d)  (narrow spike)
+//                A_{j.} | delta_j = 1  ~ N(0, sigma_slab2     * I_d)  (slab)
 //
-// Activated by passing tau_spike2 > 0.
-// Setting tau_spike2 <= 0 reproduces the original point-mass behavior.
+// Activated by passing sigma_spike2 > 0.
+// Setting sigma_spike2 <= 0 reproduces the original point-mass behavior.
 //
 // Recommended values:
-//   tau_spike2 / sigmaA2  in  [1e-4, 1e-2]
-//   e.g. sigmaA2 = 1.0, tau_spike2 = 0.01 (spike SD = 0.1 vs slab SD = 1.0)
+//   sigma_spike2 / sigma_slab2  in  [1e-4, 1e-2]
+//   e.g. sigma_slab2 = 1.0, sigma_spike2 = 0.01 (spike SD = 0.1 vs slab SD = 1.0)
 //
 // MCMC: Gibbs sampling with Kalli-Griffin-Walker slice for DP truncation.
 // Model:
@@ -216,8 +216,8 @@ Rcpp::List baycast_cpp(
   int                  iters,
   int                  burn,
   int                  thin,
-  double               sigmaA2,
-  double               tau_spike2,   // NEW: <=0 -> point-mass spike, >0 -> continuous spike
+  double               sigma_slab2,
+  double               sigma_spike2,   // NEW: <=0 -> point-mass spike, >0 -> continuous spike
   double               pi0,
   double               alpha_fixed,
   double               alpha_init,
@@ -257,18 +257,18 @@ Rcpp::List baycast_cpp(
   }
 
   pi0     = clamp01(pi0, 1e-8, 1.0-1e-8);
-  sigmaA2 = std::max(sigmaA2, 1e-12);
+  sigma_slab2 = std::max(sigma_slab2, 1e-12);
 
   // NEW: continuous-SSVS toggle
-  //   tau_spike2 <= 0     -> point-mass spike (legacy behavior)
-  //   0 < tau_spike2 < .. -> narrow Normal spike (continuous SSVS)
-  const bool use_continuous_ssvs = (tau_spike2 > 0.0);
+  //   sigma_spike2 <= 0     -> point-mass spike (legacy behavior)
+  //   0 < sigma_spike2 < .. -> narrow Normal spike (continuous SSVS)
+  const bool use_continuous_ssvs = (sigma_spike2 > 0.0);
   if(use_continuous_ssvs){
-    if(tau_spike2 >= sigmaA2){
-      Rcpp::warning("tau_spike2 should be < sigmaA2; clamping to sigmaA2/100");
-      tau_spike2 = sigmaA2 / 100.0;
+    if(sigma_spike2 >= sigma_slab2){
+      Rcpp::warning("sigma_spike2 should be < sigma_slab2; clamping to sigma_slab2/100");
+      sigma_spike2 = sigma_slab2 / 100.0;
     }
-    tau_spike2 = std::max(tau_spike2, 1e-12);
+    sigma_spike2 = std::max(sigma_spike2, 1e-12);
   }
 
   if(ind_slice) rho = clamp01(rho, 0.0, 1.0-1e-4);
@@ -491,10 +491,10 @@ Rcpp::List baycast_cpp(
 
     // NEW: SSVS mode banner
     Rcpp::Rcout << "[INIT] ssvs_mode=" << (use_continuous_ssvs ? "CONTINUOUS" : "POINT_MASS")
-                << "  sigmaA2=" << sigmaA2;
+                << "  sigma_slab2=" << sigma_slab2;
     if(use_continuous_ssvs){
-      Rcpp::Rcout << "  tau_spike2=" << tau_spike2
-                  << "  (sigmaA/tau_spike=" << std::sqrt(sigmaA2/tau_spike2) << "x)";
+      Rcpp::Rcout << "  sigma_spike2=" << sigma_spike2
+                  << "  (sigmaA/tau_spike=" << std::sqrt(sigma_slab2/sigma_spike2) << "x)";
     }
     Rcpp::Rcout << "  pi0=" << pi0 << "\n";
 
@@ -666,15 +666,15 @@ Rcpp::List baycast_cpp(
       //   G_c    = I + (sigma_c^2 / psi_j) U'U
       //   quad_c = (U'x_j)' G_c^{-1} (U'x_j)
       //
-      // POINT-MASS  (tau_spike2 <= 0):  sigma_0 = 0  ->  G_0 = I, log|G_0| = 0, quad_0 term vanishes
-      // CONTINUOUS  (tau_spike2 > 0) :  sigma_0 = sqrt(tau_spike2), full formula
+      // POINT-MASS  (sigma_spike2 <= 0):  sigma_0 = 0  ->  G_0 = I, log|G_0| = 0, quad_0 term vanishes
+      // CONTINUOUS  (sigma_spike2 > 0) :  sigma_0 = sqrt(sigma_spike2), full formula
       //
       for(int j = 0; j < p; ++j){
         double psi_j = std::max(psi(j), 1e-12);
         arma::vec Utx = UtX.col(j);
 
         // Slab (delta=1) marginal terms
-        double c1       = sigmaA2 / psi_j;
+        double c1       = sigma_slab2 / psi_j;
         arma::mat G1    = arma::eye<arma::mat>(d, d) + c1 * UtU;
         double logdetG1 = logdet_ridge(G1);
         arma::mat G1inv = inv_sympd_ridge(G1);
@@ -683,7 +683,7 @@ Rcpp::List baycast_cpp(
         double logit;
         if(use_continuous_ssvs){
           // Spike (delta=0) marginal terms — same form, narrow prior
-          double c0       = tau_spike2 / psi_j;
+          double c0       = sigma_spike2 / psi_j;
           arma::mat G0    = arma::eye<arma::mat>(d, d) + c0 * UtU;
           double logdetG0 = logdet_ridge(G0);
           arma::mat G0inv = inv_sympd_ridge(G0);
@@ -692,10 +692,10 @@ Rcpp::List baycast_cpp(
           // log[ P(delta=1 | x_j) / P(delta=0 | x_j) ] =
           //   logit_pi0
           //   + 0.5 (log|G_0| - log|G_1|)
-          //   + 0.5 / psi_j^2 * (sigmaA2 * quad_1 - tau_spike2 * quad_0)
+          //   + 0.5 / psi_j^2 * (sigma_slab2 * quad_1 - sigma_spike2 * quad_0)
           logit = logit_pi0
                 + 0.5 * (logdetG0 - logdetG1)
-                + 0.5 / (psi_j * psi_j) * (sigmaA2 * quad1 - tau_spike2 * quad0);
+                + 0.5 / (psi_j * psi_j) * (sigma_slab2 * quad1 - sigma_spike2 * quad0);
         } else {
           // Point-mass limit
           logit = logit_pi0 + 0.5 * (c1 / psi_j * quad1 - logdetG1);
@@ -708,17 +708,17 @@ Rcpp::List baycast_cpp(
       // ---- (7b) A_j update ----
       //
       // POINT-MASS:  delta_j = 0 -> A_{j.} = 0 ; delta_j = 1 -> draw from slab posterior
-      // CONTINUOUS:  always draw, with prior variance = sigmaA2 (delta=1) or tau_spike2 (delta=0)
+      // CONTINUOUS:  always draw, with prior variance = sigma_slab2 (delta=1) or sigma_spike2 (delta=0)
       //
       for(int j = 0; j < p; ++j){
         double psi_j     = std::max(psi(j), 1e-12);
         double prior_var;
 
         if(use_continuous_ssvs){
-          prior_var = (delta(j) >= 0.5) ? sigmaA2 : tau_spike2;
+          prior_var = (delta(j) >= 0.5) ? sigma_slab2 : sigma_spike2;
         } else {
           if(delta(j) < 0.5){ A.row(j).zeros(); continue; }
-          prior_var = sigmaA2;
+          prior_var = sigma_slab2;
         }
 
         arma::mat Prec = (1.0 / psi_j) * UtU
@@ -998,10 +998,10 @@ Rcpp::List baycast_cpp(
 
   // NEW: continuous SSVS provenance
   out["ssvs_mode"]       = std::string(use_continuous_ssvs ? "continuous" : "point_mass");
-  out["sigmaA2"]         = sigmaA2;
-  out["tau_spike2"]      = tau_spike2;
+  out["sigma_slab2"]         = sigma_slab2;
+  out["sigma_spike2"]      = sigma_spike2;
   if(use_continuous_ssvs){
-    out["spike_slab_sd_ratio"] = std::sqrt(sigmaA2 / std::max(tau_spike2, 1e-12));
+    out["spike_slab_sd_ratio"] = std::sqrt(sigma_slab2 / std::max(sigma_spike2, 1e-12));
   }
 
   if(q > 0){
